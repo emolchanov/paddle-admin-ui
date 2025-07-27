@@ -9,20 +9,29 @@ import {
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import { theme } from "@/modules/theme/theme";
 
-export function Providers({children}: {children: React.ReactNode}) {
-  const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      gcTime: 1000 * 60 * 2, // 2 minutes
+      staleTime: 1000 * 60, // 1 minute
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      retry: false,
+    },
+  },
+});
 
+export function Providers(props: React.PropsWithChildren) {
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       <InitColorSchemeScript attribute="class" />
       <AppRouterCacheProvider options={{ enableCssLayer: true }}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          <QueryClientProvider client={queryClient}>
-            {children}
-          </QueryClientProvider>
+          {props.children}
         </ThemeProvider>
       </AppRouterCacheProvider>
-    </>
+    </QueryClientProvider>
   );
 }

@@ -1,3 +1,4 @@
+import { AppTitleBar } from "@/components/app-title-bar";
 import { Providers } from "@/modules/theme/providers";
 
 export default function RootLayout({
@@ -8,7 +9,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <AppTitleBar>{children}</AppTitleBar>
+        </Providers>
       </body>
     </html>
   );

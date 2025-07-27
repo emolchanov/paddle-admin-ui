@@ -1,4 +1,5 @@
 'use client';
+
 import { createTheme } from '@mui/material/styles';
 import { Roboto } from 'next/font/google';
 
@@ -16,20 +17,10 @@ export const theme = createTheme({
   typography: {
     fontFamily: roboto.style.fontFamily,
   },
-  components: {
-    MuiAlert: {
-      styleOverrides: {
-        root: {
-          variants: [
-            {
-              props: { severity: 'info' },
-              style: {
-                backgroundColor: '#60a5fa',
-              },
-            },
-          ],
-        },
-      },
+  palette: {
+    mode: 'light',
+    background: {
+      // default: '#f5f5f5',
     },
   },
 });

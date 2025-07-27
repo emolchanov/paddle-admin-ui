@@ -1,18 +1,36 @@
-import { getKeys } from "@/database/keys/get-keys";
-import { NextResponse } from "next/server";
+import { getSettings } from "@/database/settings/get-settings";
+import { NextRequest, NextResponse } from "next/server";
 import ky from "ky";
 import { User } from "@/database/users/types";
 import {
   deleteAllUsers,
   getAllUsers,
+  getUsersBySignupDateRange,
   insertUsers,
 } from "@/database/users/actions";
+import { API_URLS } from "@/constants";
 
-const API_URL =
-  "https://stoplight.io/mocks/paddle/api-reference/30744711/2.0/subscription/users";
+export const config = {
+  maxDuration: 300000, // 5 minutes in milliseconds
+};
 
 export async function POST() {
-  const keys = getKeys();
+  const settings = getSettings();
+
+  if (!settings) {
+    return NextResponse.json({ error: "Missing settings" }, { status: 400 });
+  }
+
+  const bodyParams = new URLSearchParams({
+    vendor_id: settings.vendor_id ?? "",
+    vendor_auth_code: settings.vendor_auth_code ?? "",
+    page: settings.start_page.toString(),
+    results_per_page: "250",
+  });
+
+  if (settings.subscription_id) {
+    bodyParams.set("subscription_id", String(settings.subscription_id));
+  }
 
   const params = {
     headers: {
@@ -20,24 +38,20 @@ export async function POST() {
       "Content-Type": "application/x-www-form-urlencoded",
       Accept: "application/json",
     },
-    body: new URLSearchParams({
-      vendor_id: keys?.vendor_id ?? "",
-      vendor_auth_code: keys?.vendor_auth_code ?? "",
-      page: "1",
-      results_per_page: "250",
-    }),
+    body: bodyParams,
   };
 
-  const maxPages = 10;
-  let currentPage = 1;
+  let currentPage = params.body.get("page")
+    ? parseInt(params.body.get("page") as string, 10)
+    : settings.start_page;
 
-  while (currentPage <= maxPages) {
+  while (currentPage <= settings.max_pages) {
     params.body.set("page", String(currentPage));
     currentPage += 1;
 
     // Fetch users for the current page
     const response = await ky
-      .post(API_URL, params)
+      .post(API_URLS[settings.api_type], params)
       .json<{ success: boolean; response: User[] }>();
 
     console.log(
@@ -49,10 +63,13 @@ export async function POST() {
 
     if (!response.success) {
       console.error("Failed to fetch users:", response);
-      return NextResponse.json({
-        success: false,
-        message: "Failed to fetch users",
-      });
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Failed to fetch users; ${response || "Unknown error"}`,
+        },
+        { status: 500 }
+      );
     }
 
     if (response.response.length === 0) {
@@ -67,8 +84,20 @@ export async function POST() {
   return NextResponse.json(getAllUsers());
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+
+  const start_date = searchParams.get("start_date");
+  const end_date = searchParams.get("end_date");
+
   const users = getAllUsers();
+
+  if (start_date || end_date) {
+    return NextResponse.json(
+      getUsersBySignupDateRange(start_date ?? "", end_date ?? "")
+    );
+  }
+
   return NextResponse.json(users);
 }
 

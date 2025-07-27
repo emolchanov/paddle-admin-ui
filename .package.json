@@ -1,0 +1,107 @@
+{
+  "name": "admin-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "next:dev": "next dev",
+    "next:build": "next build",
+    "next:start": "next start",
+    "next:lint": "next lint",
+    "format": "dprint fmt",
+    "postinstall": "electron-builder install-app-deps --platform darwin --arch x64",
+    "electron:dist": "electron-builder --dir --mac --x64",
+    "electron:build": "tsup",
+    "build": "run-s next:build electron:build",
+    "dist": "run-s next:build electron:dist",
+    "dev": "npm-run-all --parallel electron:dev next:dev",
+    "electron:build_watch": "tsup --watch",
+    "electron:dev": "npm-run-all --parallel electron:build_watch electron:watch",
+    "electron:watch": "cross-env NODE_ENV='development' nodemon"
+  },
+  "dependencies": {
+    "@electron-toolkit/utils": "^4.0.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@fontsource/roboto": "^5.2.6",
+    "@mui/icons-material": "^7.2.0",
+    "@mui/material": "^7.2.0",
+    "@mui/material-nextjs": "^7.2.0",
+    "@mui/x-data-grid": "^8.9.1",
+    "@mui/x-date-pickers": "^8.9.0",
+    "@tanstack/react-query": "^5.83.0",
+    "better-sqlite3": "^12.2.0",
+    "date-fns": "^4.1.0",
+    "get-port-please": "^3.2.0",
+    "ky": "^1.8.2",
+    "next": "^15.4.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-hook-form": "^7.61.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
+    "@swc/core": "^1.13.2",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.1.0",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@types/react-transition-group": "^4.4.12",
+    "cross-env": "^10.0.0",
+    "electron": "^37.2.4",
+    "electron-builder": "^26.0.12",
+    "eslint": "^9.31.0",
+    "eslint-config-next": "^15.4.3",
+    "nodemon": "^3.1.10",
+    "npm-run-all": "^4.1.5",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3"
+  },
+  "overrides": {
+    "sharp": "0.32.6"
+  },
+  "main": "build/main.js",
+  "build": {
+    "asar": true,
+    "executableName": "NextJSElectron",
+    "appId": "com.saybackend.nextjs-electron",
+    "asarUnpack": [
+      "**\\*.{node,dll}"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        {
+          "target": "default",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "files": [
+      "build",
+      {
+        "from": ".next/standalone",
+        "to": "app",
+        "filter": [
+          "!**/.env",
+          "!**/package.json",
+          "!node_modules/@next/swc-*/**",
+          "!node_modules/@next/swc-darwin-x64/**"
+        ]
+      },
+      {
+        "from": ".next/static",
+        "to": "app/.next/static"
+      },
+      {
+        "from": "public",
+        "to": "app/public"
+      },
+      {
+        "from": "node_modules/@next/swc-darwin-arm64",
+        "to": "app/node_modules/@next/swc-darwin-arm64"
+      }
+    ]
+  }
+}
