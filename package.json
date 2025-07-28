@@ -1,6 +1,6 @@
 {
   "name": "paddle-app",
-  "productName": "paddle-app",
+  "productName": "Paddle Dashboard",
   "version": "1.1.0",
   "description": "Paddle Admin UI",
   "main": ".webpack/main",
