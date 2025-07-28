@@ -180,8 +180,11 @@ export const PaddleSettings = memo(function PaddleSettings() {
               onClick={onResetDatabase}
               color="error"
               loadingPosition="start"
-              loading={resetMutation.isPending || query.isPending || query.isLoading}
+              loading={
+                resetMutation.isPending || query.isPending || query.isLoading
+              }
               startIcon={<MUIcon.RestartAltRounded />}
+              sx={{ flexGrow: 0, maxWidth: '300px' }}
             >
               Reset Database
             </MUI.Button>
@@ -193,7 +196,10 @@ export const PaddleSettings = memo(function PaddleSettings() {
               loading={mutation.isPending || query.isPending || query.isLoading}
               loadingPosition="start"
               disabled={
-                mutation.isPending || query.isPending || query.isLoading
+                mutation.isPending ||
+                query.isPending ||
+                query.isLoading ||
+                !form.formState.isDirty
               }
               startIcon={<MUIcon.SaveRounded />}
             >

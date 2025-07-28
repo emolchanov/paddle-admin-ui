@@ -8,6 +8,7 @@ import {
 } from "@mui/material";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import { theme } from "@/modules/theme/theme";
+import { memo } from "react";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,7 +23,9 @@ const queryClient = new QueryClient({
   },
 });
 
-export function Providers(props: React.PropsWithChildren) {
+export const Providers = memo(function Providers(
+  props: React.PropsWithChildren
+) {
   return (
     <QueryClientProvider client={queryClient}>
       <InitColorSchemeScript attribute="class" />
@@ -34,4 +37,4 @@ export function Providers(props: React.PropsWithChildren) {
       </AppRouterCacheProvider>
     </QueryClientProvider>
   );
-}
+});

@@ -16,7 +16,7 @@
     "next:lint": "next lint",
     "next:static": "node scripts/copy-static.js",
     "app:open": "open ./out/native-app-darwin-arm64/native-app.app",
-    "prepare": "npm run app:clean",
+    "prepare": "npm run app:clean && && npm run node:dll-download",
     "prestart": "npm run node:dll-download",
     "prebuild": "npm run app:clean && npm run node:dll-download",
     "node:dll-download": "node scripts/dll-download.js",

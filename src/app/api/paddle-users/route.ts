@@ -8,7 +8,8 @@ import {
   getUsersBySignupDateRange,
   insertUsers,
 } from "@/database/users/actions";
-import { API_URLS } from "@/constants";
+import { API_URLS, USERS_API_STATUS } from "@/constants";
+import { statusEvents } from "@/modules/paddle-users/status";
 
 export const config = {
   maxDuration: 300000, // 5 minutes in milliseconds
@@ -45,6 +46,14 @@ export async function POST() {
     ? parseInt(params.body.get("page") as string, 10)
     : settings.start_page;
 
+  const key = Buffer.from(JSON.stringify(bodyParams)).toString("base64");
+
+  statusEvents.emit("statusUpdate", {
+    key,
+    status: USERS_API_STATUS.Uploading,
+    progress: 0,
+  });
+
   while (currentPage <= settings.max_pages) {
     params.body.set("page", String(currentPage));
     currentPage += 1;
@@ -63,6 +72,11 @@ export async function POST() {
 
     if (!response.success) {
       console.error("Failed to fetch users:", response);
+      statusEvents.emit("statusUpdate", {
+        key,
+        status: USERS_API_STATUS.Idle,
+        progress: 0,
+      });
       return NextResponse.json(
         {
           success: false,
@@ -78,8 +92,19 @@ export async function POST() {
 
     if (response.success) {
       insertUsers(response.response);
+      statusEvents.emit("statusUpdate", {
+        key,
+        status: USERS_API_STATUS.Uploading,
+        progress: Math.round((currentPage / settings.max_pages) * 100),
+      });
     }
   }
+
+  statusEvents.emit("statusUpdate", {
+    key,
+    status: USERS_API_STATUS.Idle,
+    progress: 0,
+  });
 
   return NextResponse.json(getAllUsers());
 }
