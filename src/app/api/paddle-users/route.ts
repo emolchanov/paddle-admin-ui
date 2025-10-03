@@ -15,6 +15,7 @@ export const config = {
   maxDuration: 300000, // 5 minutes in milliseconds
 };
 
+const STATUSES = [undefined, "deleted"];
 export async function POST() {
   const settings = getSettings();
 
@@ -40,11 +41,8 @@ export async function POST() {
       Accept: "application/json",
     },
     body: bodyParams,
+    timeout: false as const,
   };
-
-  let currentPage = params.body.get("page")
-    ? parseInt(params.body.get("page") as string, 10)
-    : settings.start_page;
 
   const key = Buffer.from(JSON.stringify(bodyParams)).toString("base64");
 
@@ -54,49 +52,70 @@ export async function POST() {
     progress: 0,
   });
 
-  while (currentPage <= settings.max_pages) {
-    params.body.set("page", String(currentPage));
-    currentPage += 1;
+  for (const status of STATUSES) {
+    let currentPage = params.body.get("page")
+      ? parseInt(params.body.get("page") as string, 10)
+      : settings.start_page;
 
-    // Fetch users for the current page
-    const response = await ky.post(API_URLS[settings.api_type], params).json<{
-      success: boolean;
-      response: User[];
-      error?: { message: string; code: number };
-    }>();
-
-    if (response.error) {
-      return NextResponse.json(response.error, { status: 500 });
-    }
-
-    console.log(
-      "[paddle-api] Fetched users for page:",
-      currentPage - 1,
-      "Users in page:",
-      response.response.length
-    );
-
-    if (!response.success) {
-      console.error("Failed to fetch users:", response);
-      statusEvents.emit("statusUpdate", {
-        key,
-        status: USERS_API_STATUS.Idle,
-        progress: 0,
+    while (currentPage <= settings.max_pages) {
+      console.log(`[paddle-api] Fetching users:${status}, page:`, {
+        currentPage,
+        ...settings,
       });
-      return NextResponse.json(
-        {
-          success: false,
-          message: `Failed to fetch users; ${response || "Unknown error"}`,
-        },
-        { status: 500 }
+
+      params.body.set("page", String(currentPage));
+
+      if (status) {
+        params.body.set("state", String(status));
+      }
+
+      currentPage += 1;
+
+      // Fetch users for the current page
+      const response = await ky.post(API_URLS[settings.api_type], params).json<{
+        success: boolean;
+        response: User[];
+        error?: { message: string; code: number };
+      }>();
+
+      if (response.error) {
+        console.log("Error fetching users:", response.error);
+        return NextResponse.json(response.error, { status: 500 });
+      }
+
+      console.log(
+        `[paddle-api] Fetched users:${status} for page:`,
+        currentPage - 1,
+        "Users in page:",
+        response.response.length
       );
-    }
 
-    if (response.response.length === 0) {
-      break; // No more users to fetch
-    }
+      if (!response.success) {
+        console.error("Failed to fetch users:", response);
 
-    if (response.success) {
+        statusEvents.emit("statusUpdate", {
+          key,
+          status: USERS_API_STATUS.Idle,
+          progress: 0,
+        });
+
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Failed to fetch users:${status}; ${
+              response || "Unknown error"
+            }`,
+          },
+          { status: 500 }
+        );
+      }
+
+      if (response.response.length === 0) {
+        console.log("No more users to fetch, ending.", response);
+        params.body.set("page", String(settings.start_page));
+        break; // No more users to fetch
+      }
+
       insertUsers(response.response);
       statusEvents.emit("statusUpdate", {
         key,
@@ -104,15 +123,15 @@ export async function POST() {
         progress: Math.round((currentPage / settings.max_pages) * 100),
       });
     }
-
-    statusEvents.emit("statusUpdate", {
-      key,
-      status: USERS_API_STATUS.Idle,
-      progress: 0,
-    });
-
-    return NextResponse.json(getAllUsers());
   }
+
+  statusEvents.emit("statusUpdate", {
+    key,
+    status: USERS_API_STATUS.Idle,
+    progress: 0,
+  });
+
+  return NextResponse.json(getAllUsers());
 }
 
 export async function GET(request: NextRequest) {

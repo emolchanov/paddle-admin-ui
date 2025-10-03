@@ -36,13 +36,13 @@ const columns: GridColDef<User[][number]>[] = [
     field: "next_payment_date",
     headerName: "Next Payment Date",
     width: 150,
-    valueGetter: (value, row) => `${row.next_payment.date}`,
+    valueGetter: (value, row) => `${row.next_payment?.date ?? null}`,
   },
   {
     field: "next_payment_amount",
     headerName: "Next Payment Amount",
     width: 200,
-    valueGetter: (value, row) => `${row.next_payment.amount}`,
+    valueGetter: (value, row) => `${row.next_payment?.amount ?? null}`,
   },
 ];
 
@@ -150,7 +150,7 @@ export const PaddleUsers = memo(function PaddleUsers() {
             <LocalizationProvider dateAdapter={AdapterDateFns}>
               <DatePicker
                 sx={{ width: "100%" }}
-                label="Start Date"
+                label="Start SignUp Date"
                 format="dd/MM/yyyy"
                 value={startDate}
                 onChange={setStartDate}
@@ -162,7 +162,7 @@ export const PaddleUsers = memo(function PaddleUsers() {
               />
               <DatePicker
                 sx={{ width: "100%" }}
-                label="End Date"
+                label="End SignUp Date"
                 format="dd/MM/yyyy"
                 value={endDate}
                 onChange={setEndDate}
@@ -211,7 +211,7 @@ export const PaddleUsers = memo(function PaddleUsers() {
             <DataGrid
               rows={query.data}
               columns={columns}
-              pageSizeOptions={[20, 50, 100, 500, 1000]}
+              pageSizeOptions={[20, 50, 100]}
               disableRowSelectionOnClick
               autosizeOnMount
               showToolbar
