@@ -26,50 +26,47 @@ export async function POST() {
   const bodyParams = new URLSearchParams({
     vendor_id: settings.vendor_id ?? "",
     vendor_auth_code: settings.vendor_auth_code ?? "",
-    page: settings.start_page.toString(),
     results_per_page: "250",
   });
-
-  if (settings.subscription_id) {
-    bodyParams.set("subscription_id", String(settings.subscription_id));
-  }
-
-  const params = {
-    headers: {
-      Prefer: "code=200",
-      "Content-Type": "application/x-www-form-urlencoded",
-      Accept: "application/json",
-    },
-    body: bodyParams,
-    timeout: false as const,
-  };
 
   const key = Buffer.from(JSON.stringify(bodyParams)).toString("base64");
 
   statusEvents.emit("statusUpdate", {
     key,
     status: USERS_API_STATUS.Uploading,
-    message: `Starting upload...`,
+    message: `Starting download users...`,
   });
 
+  if (settings.subscription_id) {
+    bodyParams.set("subscription_id", String(settings.subscription_id));
+  }
+
   for (const status of STATUSES) {
+    const params = {
+      headers: {
+        Prefer: "code=200",
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
+      },
+      body: bodyParams,
+      timeout: false as const,
+    };
+
     let currentPage = params.body.get("page")
       ? parseInt(params.body.get("page") as string, 10)
       : settings.start_page;
 
     while (currentPage <= settings.max_pages) {
-      console.log(`[paddle-api] Fetching users:${status}, page:`, {
-        currentPage,
-        ...settings,
-      });
-
       params.body.set("page", String(currentPage));
 
       if (status) {
         params.body.set("state", String(status));
       }
 
-      currentPage += 1;
+      console.log(`[paddle-api] Fetching users:${status}, page:`, {
+        currentPage,
+        ...params,
+      });
 
       // Fetch users for the current page
       const response = await ky.post(API_URLS[settings.api_type], params).json<{
@@ -125,6 +122,8 @@ export async function POST() {
           status ? ` (${status})` : ""
         } from page ${currentPage - 1}`,
       });
+
+      currentPage += 1;
     }
   }
 
