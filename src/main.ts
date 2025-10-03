@@ -1,5 +1,5 @@
 import { is } from "@electron-toolkit/utils";
-import { app, BrowserWindow, ipcMain, Menu } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, MenuItem } from "electron";
 import { getPort } from "get-port-please";
 import { join } from "path";
 import { appendFileSync } from "fs";
@@ -154,39 +154,105 @@ const closeApp = () => {
   app.quit();
 };
 
-app.whenReady().then(() => {
-  Menu.setApplicationMenu(
-    Menu.buildFromTemplate([
-      {
-        label: "File",
-        submenu: [
-          {
-            label: "Developer Tools",
-            accelerator: process.platform === "darwin" ? "Cmd+Alt+I" : "F12",
-            click: () => {
-              const focusedWindow = BrowserWindow.getFocusedWindow();
-              if (focusedWindow) {
-                focusedWindow.webContents.toggleDevTools();
-              }
-            },
-          },
-          { type: "separator" },
-          { role: "reload" },
-          { role: "forceReload" },
-          { type: "separator" },
-          {
-            label: "Quit",
-            accelerator: "CmdOrCtrl+Q",
-            click: closeApp,
-          },
-        ],
-      },
-    ])
-  );
+app.whenReady().then(async () => {
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: app.name,
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        {
+          label: 'Quit',
+          accelerator: 'Command+Q',
+          click: closeApp
+        }
+      ]
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'pasteAndMatchStyle' },
+        { role: 'delete' },
+        { role: 'selectAll' },
+        { type: 'separator' },
+        {
+          label: 'Speech',
+          submenu: [
+            { role: 'startSpeaking' },
+            { role: 'stopSpeaking' }
+          ]
+        }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        {
+          label: 'Developer Tools',
+          accelerator: process.platform === 'darwin' ? 'Command+Option+I' : 'F12',
+          click: () => {
+            const focusedWindow = BrowserWindow.getFocusedWindow();
+            if (focusedWindow) {
+              focusedWindow.webContents.toggleDevTools();
+            }
+          }
+        },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        { type: 'separator' },
+        { role: 'front' },
+        { type: 'separator' },
+        { role: 'window' }
+      ]
+    }
+  ];
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 
   initializeDatabasePath();
 
-  createWindow();
+  const mainWindow = await createWindow();
+
+  // Create context menu
+  const contextMenu = new Menu();
+  contextMenu.append(new MenuItem({ role: 'cut' }));
+  contextMenu.append(new MenuItem({ role: 'copy' }));
+  contextMenu.append(new MenuItem({ role: 'paste' }));
+  contextMenu.append(new MenuItem({ type: 'separator' }));
+  contextMenu.append(new MenuItem({ role: 'selectAll' }));
+
+  // Add context menu handler
+  mainWindow.webContents.on('context-menu', (e, params) => {
+    const { isEditable, editFlags } = params;
+    if (isEditable) {
+      contextMenu.popup();
+    }
+  });
 
   ipcMain.on("ping", () => console.log("pong"));
   app.on("activate", () => {

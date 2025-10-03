@@ -59,9 +59,15 @@ export async function POST() {
     currentPage += 1;
 
     // Fetch users for the current page
-    const response = await ky
-      .post(API_URLS[settings.api_type], params)
-      .json<{ success: boolean; response: User[] }>();
+    const response = await ky.post(API_URLS[settings.api_type], params).json<{
+      success: boolean;
+      response: User[];
+      error?: { message: string; code: number };
+    }>();
+
+    if (response.error) {
+      return NextResponse.json(response.error, { status: 500 });
+    }
 
     console.log(
       "[paddle-api] Fetched users for page:",
@@ -98,15 +104,15 @@ export async function POST() {
         progress: Math.round((currentPage / settings.max_pages) * 100),
       });
     }
+
+    statusEvents.emit("statusUpdate", {
+      key,
+      status: USERS_API_STATUS.Idle,
+      progress: 0,
+    });
+
+    return NextResponse.json(getAllUsers());
   }
-
-  statusEvents.emit("statusUpdate", {
-    key,
-    status: USERS_API_STATUS.Idle,
-    progress: 0,
-  });
-
-  return NextResponse.json(getAllUsers());
 }
 
 export async function GET(request: NextRequest) {

@@ -57,9 +57,27 @@ export const PaddleUsers = memo(function PaddleUsers() {
   const initMutation = useMutation({
     mutationKey: ["paddle-users", "init"],
     mutationFn: async () =>
-      ky.post("/api/paddle-users", { timeout: 5 * 60 * 1000 }), // 5 minutes timeout
+      ky.post("/api/paddle-users", {
+        timeout: 5 * 60 * 1000,
+        hooks: {
+          beforeError: [
+            async (error) => {
+              if (error.response) {
+                try {
+                  const body = await error.response.json<{
+                    code: number;
+                    message: string;
+                  }>();
+                  error.message = `Error:(${body.code}) ${body.message}`;
+                } catch (e) {}
+              }
+              return error;
+            },
+          ],
+        },
+      }), // 5 minutes timeout
     onSuccess: () => setError(null),
-    onError: (error) => setError(error.message),
+    onError: (error: Error) => setError(error.message),
   });
 
   const deleteMutation = useMutation({
@@ -86,8 +104,8 @@ export const PaddleUsers = memo(function PaddleUsers() {
 
   const { refetch } = query;
 
-  const uploadClick = useCallback(async () => {
-    await initMutation.mutateAsync();
+  const uploadClick = useCallback(() => {
+    initMutation.mutate();
     refetch();
   }, [initMutation, refetch]);
 
