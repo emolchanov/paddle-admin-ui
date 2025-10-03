@@ -15,27 +15,27 @@ import { useSSE } from "./useSSE";
 import { USERS_API_STATUS } from "@/constants";
 
 const columns: GridColDef<User[][number]>[] = [
-  { field: "id", headerName: "ID", width: 40 },
+  { field: "id", headerName: "ID", width: 100 },
   { field: "user_id", headerName: "User ID", width: 100 },
   {
     field: "user_email",
     headerName: "Email",
-    width: 250,
+    width: 350,
   },
   {
     field: "state",
     headerName: "State",
-    width: 150,
+    width: 100,
   },
   {
     field: "signup_date",
     headerName: "Signup Date",
-    width: 200,
+    width: 250,
   },
   {
     field: "next_payment_date",
     headerName: "Next Payment Date",
-    width: 150,
+    width: 200,
     valueGetter: (value, row) => `${row.next_payment?.date ?? null}`,
   },
   {
@@ -46,7 +46,6 @@ const columns: GridColDef<User[][number]>[] = [
   },
 ];
 
-const UPDATE_PERCENTS = [0, 1, 10, 25, 50, 75, 100];
 export const PaddleUsers = memo(function PaddleUsers() {
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -58,7 +57,7 @@ export const PaddleUsers = memo(function PaddleUsers() {
     mutationKey: ["paddle-users", "init"],
     mutationFn: async () =>
       ky.post("/api/paddle-users", {
-        timeout: 5 * 60 * 1000,
+        timeout: false,
         hooks: {
           beforeError: [
             async (error) => {
@@ -95,6 +94,7 @@ export const PaddleUsers = memo(function PaddleUsers() {
             start_date: startDate ? formatDate(startDate, "yyyy-MM-dd") : "",
             end_date: endDate ? formatDate(endDate, "yyyy-MM-dd") : "",
           }),
+          timeout: false,
         })
         .json<User[]>(),
     refetchOnMount: true,
@@ -114,20 +114,20 @@ export const PaddleUsers = memo(function PaddleUsers() {
     refetch();
   }, [deleteMutation, refetch]);
 
-  const state = useMemo<{ status: USERS_API_STATUS; progress: number }>(() => {
+  const state = useMemo<{ status: USERS_API_STATUS; message: string }>(() => {
     const lastMessage = messages[messages.length - 1] ?? null;
     return lastMessage
       ? lastMessage
-      : { status: USERS_API_STATUS.Idle, progress: 0 };
+      : { status: USERS_API_STATUS.Idle, message: "Idle" };
   }, [messages]);
 
   console.log("SSE connection status:", isConnected);
 
   useEffect(() => {
-    if (UPDATE_PERCENTS.includes(state.progress)) {
+    if (state.message && state.status !== USERS_API_STATUS.Idle) {
       query.refetch();
     }
-  }, [state.status, state.progress]);
+  }, [state.message, state.status]);
 
   return (
     <MUI.Card elevation={0} sx={{ mx: 1, mt: 0.5 }}>
@@ -191,33 +191,39 @@ export const PaddleUsers = memo(function PaddleUsers() {
           </MUI.Stack>
         }
       />
-      {error && (
-        <>
-          <MUI.Alert severity="error" onClose={() => setError(null)}>
-            {error}
-          </MUI.Alert>
-        </>
-      )}
       <MUI.CardContent>
-        <MUI.Stack
-          flexDirection={"column"}
-          sx={{
-            height: "100%",
-            width: "100%",
-            maxHeight: (theme) => `calc(100vh - ${theme.spacing(28)})`,
-          }}
-        >
-          {query.data?.length ? (
-            <DataGrid
-              rows={query.data}
-              columns={columns}
-              pageSizeOptions={[20, 50, 100]}
-              disableRowSelectionOnClick
-              autosizeOnMount
-              showToolbar
-              sx={{ m: 0 }}
-            />
+        <MUI.Stack gap={4}>
+          {error ? (
+            <MUI.Alert severity="error" onClose={() => setError(null)}>
+              {error}
+            </MUI.Alert>
           ) : null}
+          {state.status === USERS_API_STATUS.Uploading ? (
+            <MUI.Alert severity="info">{state.message}</MUI.Alert>
+          ) : null}
+          <MUI.Stack
+            flexDirection={"column"}
+            sx={{
+              height: "100%",
+              width: "100%",
+              maxHeight: (theme) =>
+                `calc(100vh - ${theme.spacing(
+                  state.status === USERS_API_STATUS.Uploading ? 38 : 28
+                )})`,
+            }}
+          >
+            {query.data?.length ? (
+              <DataGrid
+                rows={query.data}
+                columns={columns}
+                pageSizeOptions={[20, 50, 100]}
+                disableRowSelectionOnClick
+                autosizeOnMount
+                showToolbar
+                sx={{ m: 0 }}
+              />
+            ) : null}
+          </MUI.Stack>
         </MUI.Stack>
       </MUI.CardContent>
       {state.status === USERS_API_STATUS.Uploading ? (
@@ -230,11 +236,7 @@ export const PaddleUsers = memo(function PaddleUsers() {
             width: "100vw",
           }}
         >
-          <MUI.LinearProgress
-            color="primary"
-            variant="determinate"
-            value={state.progress}
-          />
+          <MUI.LinearProgress color="primary" variant="indeterminate" />
         </MUI.Box>
       ) : null}
     </MUI.Card>

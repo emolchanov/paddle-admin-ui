@@ -121,6 +121,13 @@ export function insertUsers(users: User[]) {
   });
 
   insertMany(users);
+
+  // Get total count of users after insert
+  const { count } = db.prepare("SELECT COUNT(*) as count FROM users").get() as {
+    count: number;
+  };
+
+  return count;
 }
 
 export function getUsersBySignupDateRange(

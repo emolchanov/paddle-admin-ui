@@ -49,7 +49,7 @@ export async function POST() {
   statusEvents.emit("statusUpdate", {
     key,
     status: USERS_API_STATUS.Uploading,
-    progress: 0,
+    message: `Starting upload...`,
   });
 
   for (const status of STATUSES) {
@@ -96,7 +96,7 @@ export async function POST() {
         statusEvents.emit("statusUpdate", {
           key,
           status: USERS_API_STATUS.Idle,
-          progress: 0,
+          message: `Upload error: Failed to fetch users:${status}`,
         });
 
         return NextResponse.json(
@@ -116,11 +116,14 @@ export async function POST() {
         break; // No more users to fetch
       }
 
-      insertUsers(response.response);
+      const count = insertUsers(response.response);
+
       statusEvents.emit("statusUpdate", {
         key,
         status: USERS_API_STATUS.Uploading,
-        progress: Math.round((currentPage / settings.max_pages) * 100),
+        message: `Uploaded ${count} users${
+          status ? ` (${status})` : ""
+        } from page ${currentPage - 1}`,
       });
     }
   }
@@ -128,7 +131,7 @@ export async function POST() {
   statusEvents.emit("statusUpdate", {
     key,
     status: USERS_API_STATUS.Idle,
-    progress: 0,
+    message: `Upload complete`,
   });
 
   return NextResponse.json(getAllUsers());

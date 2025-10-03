@@ -9,8 +9,8 @@ export async function GET() {
   const encoder = new TextEncoder();
 
   statusEvents.removeAllListeners("statusUpdate");
-  statusEvents.on("statusUpdate", async ({ status, progress }) => {
-    const data = JSON.stringify({ status, progress });
+  statusEvents.on("statusUpdate", async ({ status, message }) => {
+    const data = JSON.stringify({ status, message });
     const sseMessage = `data: ${data}\n\n`;
     try {
       await writer.write(encoder.encode(sseMessage));
