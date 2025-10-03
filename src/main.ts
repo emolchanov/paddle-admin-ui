@@ -1,9 +1,18 @@
 import { is } from "@electron-toolkit/utils";
-import { app, BrowserWindow, ipcMain, Menu, MenuItem } from "electron";
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  Menu,
+  powerSaveBlocker,
+  MenuItem,
+} from "electron";
 import { getPort } from "get-port-please";
 import { join } from "path";
 import { appendFileSync } from "fs";
 import { spawn, ChildProcess } from "child_process";
+
+const id = powerSaveBlocker.start("prevent-display-sleep");
 
 function initializeDatabasePath() {
   const dbDirectory = join(app.getPath("userData"), "database");
@@ -159,77 +168,75 @@ app.whenReady().then(async () => {
     {
       label: app.name,
       submenu: [
-        { role: 'about' },
-        { type: 'separator' },
-        { role: 'services' },
-        { type: 'separator' },
-        { role: 'hide' },
-        { role: 'hideOthers' },
-        { role: 'unhide' },
-        { type: 'separator' },
+        { role: "about" },
+        { type: "separator" },
+        { role: "services" },
+        { type: "separator" },
+        { role: "hide" },
+        { role: "hideOthers" },
+        { role: "unhide" },
+        { type: "separator" },
         {
-          label: 'Quit',
-          accelerator: 'Command+Q',
-          click: closeApp
-        }
-      ]
+          label: "Quit",
+          accelerator: "Command+Q",
+          click: closeApp,
+        },
+      ],
     },
     {
-      label: 'Edit',
+      label: "Edit",
       submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
-        { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        { role: 'pasteAndMatchStyle' },
-        { role: 'delete' },
-        { role: 'selectAll' },
-        { type: 'separator' },
+        { role: "undo" },
+        { role: "redo" },
+        { type: "separator" },
+        { role: "cut" },
+        { role: "copy" },
+        { role: "paste" },
+        { role: "pasteAndMatchStyle" },
+        { role: "delete" },
+        { role: "selectAll" },
+        { type: "separator" },
         {
-          label: 'Speech',
-          submenu: [
-            { role: 'startSpeaking' },
-            { role: 'stopSpeaking' }
-          ]
-        }
-      ]
+          label: "Speech",
+          submenu: [{ role: "startSpeaking" }, { role: "stopSpeaking" }],
+        },
+      ],
     },
     {
-      label: 'View',
+      label: "View",
       submenu: [
-        { role: 'reload' },
-        { role: 'forceReload' },
+        { role: "reload" },
+        { role: "forceReload" },
         {
-          label: 'Developer Tools',
-          accelerator: process.platform === 'darwin' ? 'Command+Option+I' : 'F12',
+          label: "Developer Tools",
+          accelerator:
+            process.platform === "darwin" ? "Command+Option+I" : "F12",
           click: () => {
             const focusedWindow = BrowserWindow.getFocusedWindow();
             if (focusedWindow) {
               focusedWindow.webContents.toggleDevTools();
             }
-          }
+          },
         },
-        { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { type: 'separator' },
-        { role: 'togglefullscreen' }
-      ]
+        { type: "separator" },
+        { role: "resetZoom" },
+        { role: "zoomIn" },
+        { role: "zoomOut" },
+        { type: "separator" },
+        { role: "togglefullscreen" },
+      ],
     },
     {
-      label: 'Window',
+      label: "Window",
       submenu: [
-        { role: 'minimize' },
-        { role: 'zoom' },
-        { type: 'separator' },
-        { role: 'front' },
-        { type: 'separator' },
-        { role: 'window' }
-      ]
-    }
+        { role: "minimize" },
+        { role: "zoom" },
+        { type: "separator" },
+        { role: "front" },
+        { type: "separator" },
+        { role: "window" },
+      ],
+    },
   ];
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
@@ -240,14 +247,14 @@ app.whenReady().then(async () => {
 
   // Create context menu
   const contextMenu = new Menu();
-  contextMenu.append(new MenuItem({ role: 'cut' }));
-  contextMenu.append(new MenuItem({ role: 'copy' }));
-  contextMenu.append(new MenuItem({ role: 'paste' }));
-  contextMenu.append(new MenuItem({ type: 'separator' }));
-  contextMenu.append(new MenuItem({ role: 'selectAll' }));
+  contextMenu.append(new MenuItem({ role: "cut" }));
+  contextMenu.append(new MenuItem({ role: "copy" }));
+  contextMenu.append(new MenuItem({ role: "paste" }));
+  contextMenu.append(new MenuItem({ type: "separator" }));
+  contextMenu.append(new MenuItem({ role: "selectAll" }));
 
   // Add context menu handler
-  mainWindow.webContents.on('context-menu', (e, params) => {
+  mainWindow.webContents.on("context-menu", (e, params) => {
     const { isEditable, editFlags } = params;
     if (isEditable) {
       contextMenu.popup();
@@ -260,7 +267,9 @@ app.whenReady().then(async () => {
   });
 });
 
+
 app.on("window-all-closed", () => {
+  powerSaveBlocker.stop(id);
   closeApp();
 });
 
