@@ -29,6 +29,14 @@ export async function POST() {
     results_per_page: "250",
   });
 
+  if (settings.subscription_id) {
+    bodyParams.set("subscription_id", String(settings.subscription_id));
+  }
+
+  if (settings.plan_id) {
+    bodyParams.set("plan_id", String(settings.plan_id));
+  }
+
   const key = Buffer.from(JSON.stringify(bodyParams)).toString("base64");
 
   statusEvents.emit("statusUpdate", {
@@ -36,10 +44,6 @@ export async function POST() {
     status: USERS_API_STATUS.Uploading,
     message: `Starting download users...`,
   });
-
-  if (settings.subscription_id) {
-    bodyParams.set("subscription_id", String(settings.subscription_id));
-  }
 
   for (const status of STATUSES) {
     const params = {
@@ -52,9 +56,7 @@ export async function POST() {
       timeout: false as const,
     };
 
-    let currentPage = params.body.get("page")
-      ? parseInt(params.body.get("page") as string, 10)
-      : settings.start_page;
+    let currentPage = settings.start_page;
 
     while (currentPage <= settings.max_pages) {
       params.body.set("page", String(currentPage));
@@ -82,7 +84,7 @@ export async function POST() {
 
       console.log(
         `[paddle-api] Fetched users:${status} for page:`,
-        currentPage - 1,
+        currentPage,
         "Users in page:",
         response.response.length
       );
@@ -109,7 +111,6 @@ export async function POST() {
 
       if (response.response.length === 0) {
         console.log("No more users to fetch, ending.", response);
-        params.body.set("page", String(settings.start_page));
         break; // No more users to fetch
       }
 

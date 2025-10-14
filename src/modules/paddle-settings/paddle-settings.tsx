@@ -14,6 +14,7 @@ interface FormValues {
   start_page: number;
   max_pages: number;
   subscription_id: number;
+  plan_id: number;
   api_type: API_TYPE;
 }
 
@@ -50,6 +51,7 @@ export const PaddleSettings = memo(function PaddleSettings() {
       vendor_id: "",
       vendor_auth_code: "",
       subscription_id: 0,
+      plan_id: 0,
       start_page: 1,
       max_pages: 10,
       api_type: API_TYPE.MOCK,
@@ -62,6 +64,7 @@ export const PaddleSettings = memo(function PaddleSettings() {
         vendor_id: query.data.vendor_id || "",
         vendor_auth_code: query.data.vendor_auth_code || "",
         subscription_id: query.data.subscription_id || 0,
+        plan_id: query.data.plan_id || 0,
         start_page: query.data.start_page || 1,
         max_pages: query.data.max_pages || 10,
         api_type: query.data.api_type || API_TYPE.MOCK,
@@ -111,7 +114,7 @@ export const PaddleSettings = memo(function PaddleSettings() {
                 fullWidth
                 required
                 label="Vendor ID"
-                placeholder="vendor_id"
+                placeholder="vendor_id:number"
                 disabled={
                   mutation.isPending || query.isPending || query.isLoading
                 }
@@ -122,7 +125,7 @@ export const PaddleSettings = memo(function PaddleSettings() {
                 fullWidth
                 required
                 label="Vendor Auth Code"
-                placeholder="vendor_auth_code"
+                placeholder="vendor_auth_code:string"
                 slotProps={{ inputLabel: { shrink: true } }}
                 disabled={
                   mutation.isPending || query.isPending || query.isLoading
@@ -134,7 +137,7 @@ export const PaddleSettings = memo(function PaddleSettings() {
               <MUI.TextField
                 fullWidth
                 label="Subscription Id"
-                placeholder="subscription_id"
+                placeholder="subscription_id:number"
                 slotProps={{ inputLabel: { shrink: true } }}
                 disabled={
                   mutation.isPending || query.isPending || query.isLoading
@@ -143,9 +146,22 @@ export const PaddleSettings = memo(function PaddleSettings() {
               />
               <MUI.TextField
                 fullWidth
+                label="Plan ID"
+                placeholder="plan_id:number"
+                slotProps={{ inputLabel: { shrink: true } }}
+                disabled={
+                  mutation.isPending || query.isPending || query.isLoading
+                }
+                {...form.register("plan_id", {
+                  valueAsNumber: true,
+                  required: true,
+                })}
+              />
+              <MUI.TextField
+                fullWidth
                 required
                 label="Start Page"
-                placeholder="1"
+                placeholder="page:number"
                 slotProps={{ inputLabel: { shrink: true } }}
                 disabled={
                   mutation.isPending || query.isPending || query.isLoading
@@ -159,7 +175,7 @@ export const PaddleSettings = memo(function PaddleSettings() {
                 fullWidth
                 required
                 label="Max Pages"
-                placeholder="10"
+                placeholder="max_pages:number"
                 slotProps={{ inputLabel: { shrink: true } }}
                 disabled={
                   mutation.isPending || query.isPending || query.isLoading
@@ -184,7 +200,7 @@ export const PaddleSettings = memo(function PaddleSettings() {
                 resetMutation.isPending || query.isPending || query.isLoading
               }
               startIcon={<MUIcon.RestartAltRounded />}
-              sx={{ flexGrow: 0, maxWidth: '300px' }}
+              sx={{ flexGrow: 0, maxWidth: "300px" }}
             >
               Reset Database
             </MUI.Button>

@@ -7,6 +7,7 @@ export function initSettingsTable(db: Database.Database) {
         vendor_id TEXT NOT NULL,
         vendor_auth_code TEXT NOT NULL,
         subscription_id INTEGER NOT NULL,
+        plan_id INTEGER NOT NULL,
         start_page INTEGER NOT NULL,
         max_pages INTEGER NOT NULL,
         api_type INTEGER NOT NULL

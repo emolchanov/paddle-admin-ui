@@ -10,12 +10,13 @@ export function getSettings() {
         vendor_id: string;
         vendor_auth_code: string;
         subscription_id: number;
+        plan_id: number;
         start_page: number;
         max_pages: number;
         api_type: API_TYPE;
       }
     >(
-      "SELECT vendor_id, vendor_auth_code, subscription_id, start_page, max_pages, api_type FROM settings ORDER BY id DESC LIMIT 1"
+      "SELECT vendor_id, vendor_auth_code, subscription_id, plan_id, start_page, max_pages, api_type FROM settings ORDER BY id DESC LIMIT 1"
     )
     .get();
 }

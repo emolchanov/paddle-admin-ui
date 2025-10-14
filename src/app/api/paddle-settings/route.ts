@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
     max_pages,
     start_page,
     subscription_id,
+    plan_id,
     api_type,
   } = await req.json();
 
@@ -18,7 +19,8 @@ export async function POST(req: NextRequest) {
     typeof vendor_auth_code !== "string" ||
     typeof max_pages !== "number" ||
     typeof start_page !== "number" ||
-    typeof subscription_id !== "number"
+    typeof subscription_id !== "number" ||
+    typeof plan_id !== "number"
   ) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
@@ -27,6 +29,7 @@ export async function POST(req: NextRequest) {
     vendor_id,
     vendor_auth_code,
     subscription_id,
+    plan_id,
     start_page,
     max_pages,
     api_type
@@ -45,6 +48,7 @@ export async function GET() {
     start_page: row?.start_page,
     max_pages: row?.max_pages,
     api_type: row?.api_type,
+    plan_id: row?.plan_id,
   });
 }
 export async function DELETE() {
