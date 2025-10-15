@@ -16,12 +16,24 @@ export const config = {
 };
 
 const STATUSES = [undefined, "deleted"];
-export async function POST() {
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export async function POST(request: NextRequest) {
   const settings = getSettings();
 
   if (!settings) {
     return NextResponse.json({ error: "Missing settings" }, { status: 400 });
   }
+
+  // Track if request was aborted
+  let isAborted = false;
+  const abortHandler = () => {
+    isAborted = true;
+    console.log("[paddle-api] Request aborted by client");
+  };
+  
+  request.signal.addEventListener("abort", abortHandler);
 
   const bodyParams = new URLSearchParams({
     vendor_id: settings.vendor_id ?? "",
@@ -46,28 +58,33 @@ export async function POST() {
   });
 
   for (const status of STATUSES) {
-    const params = {
-      headers: {
-        Prefer: "code=200",
-        "Content-Type": "application/x-www-form-urlencoded",
-        Accept: "application/json",
-      },
-      body: bodyParams,
-      timeout: false as const,
-    };
-
     let currentPage = settings.start_page;
 
-    while (currentPage <= settings.max_pages) {
-      params.body.set("page", String(currentPage));
-
+    while (currentPage <= settings.max_pages && !isAborted) {
+      // Prepare parameters for this request
+      const currentParams = new URLSearchParams(bodyParams.toString());
+      
+      // Add page number
+      currentParams.set("page", String(currentPage));
+      
+      // Add status if present
       if (status) {
-        params.body.set("state", String(status));
+        currentParams.set("state", String(status));
       }
+
+      const params = {
+        headers: {
+          Prefer: "code=200",
+          "Content-Type": "application/x-www-form-urlencoded",
+          Accept: "application/json",
+        },
+        body: currentParams.toString(), // Convert to string immediately
+        timeout: false as const,
+      };
 
       console.log(`[paddle-api] Fetching users:${status}, page:`, {
         currentPage,
-        ...params,
+        params: Object.fromEntries(currentParams.entries()),
       });
 
       // Fetch users for the current page
@@ -77,20 +94,22 @@ export async function POST() {
         error?: { message: string; code: number };
       }>();
 
-      if (response.error) {
-        console.log("Error fetching users:", response.error);
-        return NextResponse.json(response.error, { status: 500 });
+      const { error, success, response: users } = response;
+
+      if (error) {
+        console.log("Error fetching users:", error);
+        return NextResponse.json(error, { status: 500 });
       }
 
       console.log(
         `[paddle-api] Fetched users:${status} for page:`,
         currentPage,
         "Users in page:",
-        response.response.length
+        users.length
       );
 
-      if (!response.success) {
-        console.error("Failed to fetch users:", response);
+      if (!success) {
+        console.error("Failed to fetch users:", error);
 
         statusEvents.emit("statusUpdate", {
           key,
@@ -102,30 +121,54 @@ export async function POST() {
           {
             success: false,
             message: `Failed to fetch users:${status}; ${
-              response || "Unknown error"
+              error || "Unknown error"
             }`,
           },
           { status: 500 }
         );
       }
 
-      if (response.response.length === 0) {
-        console.log("No more users to fetch, ending.", response);
+      if (users.length === 0) {
+        console.log("No more users to fetch, ending.");
         break; // No more users to fetch
       }
 
-      const count = insertUsers(response.response);
+      const count = insertUsers(users);
 
       statusEvents.emit("statusUpdate", {
         key,
         status: USERS_API_STATUS.Uploading,
         message: `Uploaded ${count} users${
           status ? ` (${status})` : ""
-        } from page ${currentPage - 1}`,
+        } from page ${currentPage}`,
       });
+
+      await delay(500);
 
       currentPage += 1;
     }
+    
+    // If aborted, break outer loop too
+    if (isAborted) {
+      break;
+    }
+  }
+
+  // Clean up abort listener
+  request.signal.removeEventListener("abort", abortHandler);
+
+  // If request was aborted, send appropriate response
+  if (isAborted) {
+    statusEvents.emit("statusUpdate", {
+      key,
+      status: USERS_API_STATUS.Idle,
+      message: `Upload cancelled by user`,
+    });
+
+    return NextResponse.json(
+      { success: false, message: "Request cancelled" },
+      { status: 499 } // Client Closed Request
+    );
   }
 
   statusEvents.emit("statusUpdate", {
